@@ -30,7 +30,7 @@ jobs:
 
     - name: Clone tc-build & Run Build
       run: |
-        git clone https://github.com && cd tc-build
+        git clone https://github.com/ClangBuiltLinux/tc-build && cd tc-build
         
         # Jalankan build dengan pembatasan Link Jobs agar tidak crash RAM
         ./build-llvm.py \
