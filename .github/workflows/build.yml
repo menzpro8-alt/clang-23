@@ -1,5 +1,4 @@
 name: Build LLVM Clang
-
 on:
   push:
     branches: [ main ]
