@@ -1,1 +1,54 @@
+name: Build LLVM Clang
 
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Baris ini membuat tombol "Run workflow" muncul di GitHub
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Free Disk Space (Kunci Utama Agar Tidak Disk Full)
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /usr/local/share/boost
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        df -h
+
+    - name: Install Dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y bc binutils-dev bison build-essential ca-certificates \
+          ccache clang cmake curl file flex git libelf-dev libssl-dev lld make \
+          ninja-build pkg-config python3-dev texinfo u-boot-tools xz-utils zlib1g-dev
+
+    - name: Clone tc-build & Run Build
+      run: |
+        git clone https://github.com && cd tc-build
+        
+        # Jalankan build dengan pembatasan Link Jobs agar tidak crash RAM
+        ./build-llvm.py \
+          --defines LLVM_PARALLEL_COMPILE_JOBS="$(nproc --all)" LLVM_PARALLEL_LINK_JOBS="1" CMAKE_C_FLAGS=-O2 CMAKE_CXX_FLAGS=-O2 \
+          --build-type="Release" \
+          --multicall \
+          --quiet-cmake \
+          --install-folder "clang-23" \
+          --shallow-clone \
+          --targets ARM AArch64 X86 \
+          --ref "main" \
+          --vendor-string "Royan"
+          
+        ./build-binutils.py --targets arm aarch64 x86_64
+
+    - name: Upload Artifacts (Menyimpan Hasil Build)
+      uses: actions/upload-artifact@v4
+      with:
+        name: clang-23-built
+        path: tc-build/clang-23/
