@@ -16,7 +16,7 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Free Disk Space (Kunci Utama Agar Tidak Disk Full)
+    - name: Free Disk Space
       run: |
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf /usr/local/lib/android
@@ -34,7 +34,7 @@ jobs:
 
     - name: Clone tc-build & Run Build
       run: |
-        git clone https://github.com && cd tc-build
+        git clone https://github.com/ClangBuiltLinux/tc-build && cd tc-build
         
         # Jalankan build dengan pembatasan Link Jobs agar tidak crash RAM
         ./build-llvm.py \
@@ -50,7 +50,7 @@ jobs:
           
         ./build-binutils.py --targets arm aarch64 x86_64
 
-    - name: Compress Toolchain (Kompresi Maksimal .tar.xz)
+    - name: Compress Toolchain
       run: |
         # Mengompres folder hasil build menjadi format .tar.xz yang sangat padat
         tar -cJf clang-23-built.tar.xz -C tc-build clang-23
@@ -61,7 +61,7 @@ jobs:
         # Membuat penanda tanggal otomatis agar nama rilis unik
         echo "release_tag=clang-23-$(date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
 
-    - name: Upload to GitHub Releases (Otomatis Masuk Page Releases)
+    - name: Upload to GitHub Releases
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.tag.outputs.release_tag }}
