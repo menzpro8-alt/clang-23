@@ -1,12 +1,16 @@
-name: Build LLVM Clang
+name: Build LLVM Clang & Auto Release
+
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # Baris ini membuat tombol "Run workflow" muncul di GitHub
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Memberikan izin ke token GitHub untuk menulis dan membuat Release baru
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout Repository
@@ -30,7 +34,7 @@ jobs:
 
     - name: Clone tc-build & Run Build
       run: |
-        git clone https://github.com/ClangBuiltLinux/tc-build && cd tc-build
+        git clone https://github.com && cd tc-build
         
         # Jalankan build dengan pembatasan Link Jobs agar tidak crash RAM
         ./build-llvm.py \
@@ -46,8 +50,29 @@ jobs:
           
         ./build-binutils.py --targets arm aarch64 x86_64
 
-    - name: Upload Artifacts (Menyimpan Hasil Build)
-      uses: actions/upload-artifact@v4
+    - name: Compress Toolchain (Kompresi Maksimal .tar.xz)
+      run: |
+        # Mengompres folder hasil build menjadi format .tar.xz yang sangat padat
+        tar -cJf clang-23-built.tar.xz -C tc-build clang-23
+
+    - name: Generate Release Tag & Name
+      id: tag
+      run: |
+        # Membuat penanda tanggal otomatis agar nama rilis unik
+        echo "release_tag=clang-23-$(date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
+
+    - name: Upload to GitHub Releases (Otomatis Masuk Page Releases)
+      uses: softprops/action-gh-release@v2
       with:
-        name: clang-23-built
-        path: tc-build/clang-23/
+        tag_name: ${{ steps.tag.outputs.release_tag }}
+        name: Clang 23 Toolchain (Royan)
+        body: |
+          Kompilasi LLVM Clang 23 sukses dibuat secara otomatis.
+          - **Vendor String**: Royan
+          - **Targets**: ARM, AArch64, X86
+          - **Type**: Release (Compressed)
+        draft: false
+        prerelease: false
+        files: clang-23-built.tar.xz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
